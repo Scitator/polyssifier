@@ -11,9 +11,9 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 
-class MyVoter(object):
-    """Voter that receive fitted classifiers
-
+class PolyVoter(object):
+    """
+    Voter that receive fitted classifiers
     """
 
     def __init__(self, estimators):
@@ -36,50 +36,57 @@ def build_classifiers(exclude, scale, feature_selection, nCols):
         classifiers['Multilayer Perceptron'] = {
             'clf': MLP(verbose=0, patience=100, learning_rate=0.1,
                        n_hidden=50, n_deep=2, l1_norm=0.001, drop=0.2),
-            'parameters': {}}
+            'parameters': {}
+        }
 
     if 'Nearest Neighbors' not in exclude:
         classifiers['Nearest Neighbors'] = {
             'clf': KNeighborsClassifier(),
-            'parameters': {'n_neighbors': [1, 5, 10, 20]}}
+            'parameters': {'n_neighbors': [1, 5, 10, 20]}
+        }
 
     if 'SVM' not in exclude:
         classifiers['SVM'] = {
             'clf': SVC(C=1, probability=True, cache_size=10000,
                        class_weight='balanced'),
             'parameters': {'kernel': ['rbf', 'poly'],
-                           'C': [0.01, 0.1, 1]}}
+                           'C': [0.01, 0.1, 1]}
+        }
 
     if 'Linear SVM' not in exclude:
         classifiers['Linear SVM'] = {
             'clf': LinearSVC(dual=False, class_weight='balanced'),
             'parameters': {'C': [0.01, 0.1, 1],
-                           'penalty': ['l1', 'l2']}}
+                           'penalty': ['l1', 'l2']}
+        }
 
     if 'Decision Tree' not in exclude:
         classifiers['Decision Tree'] = {
             'clf': DecisionTreeClassifier(max_depth=None,
                                           max_features='auto'),
-            'parameters': {}}
+            'parameters': {}
+        }
 
     if 'Random Forest' not in exclude:
         classifiers['Random Forest'] = {
             'clf': RandomForestClassifier(max_depth=None,
                                           n_estimators=10,
                                           max_features='auto'),
-            'parameters': {'n_estimators': list(range(5, 20))}}
+            'parameters': {'n_estimators': list(range(5, 20))}
+        }
 
     if 'Logistic Regression' not in exclude:
         classifiers['Logistic Regression'] = {
             'clf': LogisticRegression(fit_intercept=True, solver='lbfgs',
                                       penalty='l2'),
-            'parameters': {'C': [0.001, 0.1, 1]}}
+            'parameters': {'C': [0.001, 0.1, 1]}
+        }
 
     if 'Naive Bayes' not in exclude:
         classifiers['Naive Bayes'] = {
             'clf': GaussianNB(),
-            'parameters': {}}
-    # classifiers['Voting'] = {}
+            'parameters': {}
+        }
 
     def name(x):
         return x['clf']._final_estimator.__class__.__name__.lower()
@@ -97,8 +104,9 @@ def build_classifiers(exclude, scale, feature_selection, nCols):
         # Reorganize paramenter list for grid search
         new_dict = {}
         for keyp in classifiers[key]['parameters']:
-            new_dict[name(classifiers[key]) + '__' +
-                     keyp] = classifiers[key]['parameters'][keyp]
+            new_dict[
+                name(classifiers[key]) + '__' + keyp] = \
+                classifiers[key]['parameters'][keyp]
         classifiers[key]['parameters'] = new_dict
         if nCols > 5 and feature_selection:
             classifiers[key]['parameters']['selectkbest__k'] = np.linspace(

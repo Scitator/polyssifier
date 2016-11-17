@@ -16,7 +16,7 @@ from sklearn.externals import joblib
 import time
 from sklearn.preprocessing import LabelEncoder
 from itertools import starmap
-from .poly_utils import build_classifiers, MyVoter
+from .poly_utils import build_classifiers, PolyVoter
 
 sys.setrecursionlimit(10000)
 logger = logging.getLogger(__name__)
@@ -46,11 +46,10 @@ def poly(data, label, n_folds=10, scale=True, exclude=[],
     predictions  = Cross validated predicitons for each classifier
     '''
 
-    assert label.shape[0] == data.shape[
-        0], "Label dimesions do not match data number of rows"
+    assert label.shape[0] == data.shape[0], \
+        "Label dimesions do not match data number of rows"
     _le = LabelEncoder()
-    _le.fit(label)
-    label = _le.transform(label)
+    label = _le.fit_transform(label)
     n_class = len(np.unique(label))
 
     if save and not os.path.exists('poly_{}/models'.format(project_name)):
@@ -70,8 +69,6 @@ def poly(data, label, n_folds=10, scale=True, exclude=[],
     test_prob = pd.DataFrame(columns=classifiers.keys(),
                              index=range(data.shape[0]))
     confusions = {}
-    # !fitted_clfs =
-    # pd.DataFrame(columns=classifiers.keys(), index = range(n_folds))
 
     logger.info('Initialization, done.')
 
@@ -129,7 +126,7 @@ def poly(data, label, n_folds=10, scale=True, exclude=[],
     temp = np.zeros((n_class, n_class))
     temp_pred = np.zeros((data.shape[0], ))
     for n, (train, test) in enumerate(kf):
-        clf = MyVoter(fitted_clfs.loc[n].values)
+        clf = PolyVoter(fitted_clfs.loc[n].values)
         X, y = data[train, :], label[train]
         scores.loc[n, ('Voting', 'train')] = _scorer(clf, X, y)
         X, y = data[test, :], label[test]
@@ -162,9 +159,9 @@ def _scorer(clf, X, y):
             ypred = clf.decision_function(X)
         else:
             ypred = clf.predict(X)
-        score = roc_auc_score(y, ypred)
+        score = roc_auc_score(y, ypred, average='weighted')
     else:
-        score = f1_score(y, clf.predict(X))
+        score = f1_score(y, clf.predict(X), average='weighted')
     return score
 
 
@@ -284,6 +281,7 @@ if __name__ == '__main__':
     logger.info(
         'Starting classification with {} workers'.format(args.concurrency))
 
-    scores, confusions, predictions, test_prob = poly(data, label, n_folds=5, project_name=args.name,
-                                                      concurrency=int(args.concurrency))
+    scores, confusions, predictions, test_prob = poly(
+        data, label, n_folds=5, project_name=args.name,
+        concurrency=int(args.concurrency))
     plot(scores, os.path.join('poly_' + args.name, args.name))
